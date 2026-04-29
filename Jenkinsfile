@@ -9,7 +9,7 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES') 
         disableConcurrentBuilds()
     }
-    stages{
+    stages {
         stage('Read package.json') {
             steps {
                 script {
@@ -19,14 +19,10 @@ pipeline {
                 }
             }
         }
-        }
 
-        stage('Test') {
-            steps {
-                echo "Testing the build application"
-            }
-        }
+    }
 
+    stages {
         stage('Deploy') {
             input {
                 message "Should we continue?"
@@ -38,12 +34,6 @@ pipeline {
                     echo "Deploying the application in vm "
                 }
                 
-            }
-        }
-
-        stage('Deploy-2') {
-            steps {
-                echo "optional only"
             }
         }
     }
