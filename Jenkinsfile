@@ -22,22 +22,6 @@ pipeline {
 
     }
 
-    stages {
-        stage('Deploy') {
-            input {
-                message "Should we continue?"
-                ok "Yes, we should."
-                submitter "alice,bob"
-            }
-            steps {
-                script {
-                    echo "Deploying the application in vm "
-                }
-                
-            }
-        }
-    }
-
     post { 
         always { 
             echo 'I will always say Hello again!'
