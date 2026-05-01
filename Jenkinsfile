@@ -13,6 +13,9 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES') 
         disableConcurrentBuilds()
     }
+    parameters {
+        booleanParam(name: 'deploy', defaultValue: false, description: 'Toggle this value')
+    }
     stages {
         stage('Read package.json') {
             steps {
@@ -34,21 +37,34 @@ pipeline {
             }
         }
         stage('Docker Build') {
-    steps {
-        script {
-            withAWS(credentials: 'aws-cerds', region: "${REGION}") {
-                sh """
-                    aws ecr get-login-password --region ${REGION} | \
-                    docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com
+            steps {
+                script {
+                    withAWS(credentials: 'aws-cerds', region: "${REGION}") {
+                        sh """
+                            aws ecr get-login-password --region ${REGION} | \
+                            docker login --username AWS --password-stdin ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com
 
-                    docker build -t ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion} .
-                    docker push ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion}
-                """
+                            docker build -t ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion} .
+                            docker push ${ACC_ID}.dkr.ecr.${REGION}.amazonaws.com/${PROJECT}/${COMPONENT}:${appVersion}
+                        """
+                    }
+                }
             }
         }
-    }
-}
 
+        stage('Trigger Deploy') {
+             when {
+                expression { params.deploy }
+             }
+            stage('Trigger SG') {
+                steps {
+                    build job: 'catalogue-cd',
+                    wait: false, // VPC will not wait for SG pipeline completion
+                    propagate: false // even SG fails VPC will not be effected
+                }
+            }
+
+        }
     }
 
     post { 
