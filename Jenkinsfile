@@ -48,10 +48,10 @@ pipeline {
         }
 
         stage('Sonar scan') {
+            environment {
+                scannerHome = tool 'sonarqube-8.0'
+            }
             steps {
-                environment {
-                    scannerHome = tool 'sonarqube-8.0'
-                }
                 script {
                     withSonarQubeEnv(installationName:'sonarqube-8.0') { // 'My SonarQube Server' is the installationName
                         sh "${scannerHome}/bin/sonar-scanner"
