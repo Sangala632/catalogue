@@ -73,27 +73,26 @@ pipeline {
                     script {
                         def response = sh(
                             script: """
-                                curl -sf \
-                                -H "Accept: application/vnd.github+json" \
-                                -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-                                -H "X-GitHub-Api-Version: 2022-11-28" \
-                                "https://api.github.com/repos/daws-84s/catalogue/dependabot/alerts?state=open&per_page=100"
+                                curl -s -H "Accept: application/vnd.github+json" \
+                                    -H "Authorization: token ${GITHUB_TOKEN}" \
+                                    https://api.github.com/repos/sangala632/catalogue/dependabot/alerts
                             """,
                             returnStdout: true
                         ).trim()
 
-                        def alerts = readJSON text: response
+                        def json = readJSON text: response
 
-                        def criticalOrHigh = alerts.findAll { alert ->
+                        def criticalOrHigh = json.findAll { alert ->
                             def severity = alert?.security_advisory?.severity?.toLowerCase()
-                            return severity == "critical" || severity == "high"
+                            def state = alert?.state?.toLowerCase()
+                            return (state == "open" && (severity == "critical" || severity == "high"))
                         }
 
                         if (criticalOrHigh.size() > 0) {
-                            error "❌ Found ${criticalOrHigh.size()} critical/high vulnerabilities. Fix and re-run."
+                            error "❌ Found ${criticalOrHigh.size()} HIGH/CRITICAL Dependabot alerts. Failing pipeline!"
+                        } else {
+                            echo "✅ No HIGH/CRITICAL Dependabot alerts found."
                         }
-
-                        echo "✅ No critical or high vulnerabilities found. Pipeline passed."
                     }
                 }
             }
