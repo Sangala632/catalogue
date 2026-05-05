@@ -59,6 +59,13 @@ pipeline {
                 }
             }
         }
+        // enable webhook in sonarqube server and wait for result
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                waitForQualityGate abortPipeline: true }
+            }
+        }
 
         stage('Docker Build') {
             steps {
