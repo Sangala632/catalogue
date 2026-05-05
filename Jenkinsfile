@@ -67,6 +67,37 @@ pipeline {
             }
         }
 
+        stage('Check Dependabot Alerts') {
+            steps {
+                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    script {
+                        def response = sh(
+                            script: """
+                                curl -sf \
+                                -H "Accept: application/vnd.github+json" \
+                                -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                                -H "X-GitHub-Api-Version: 2022-11-28" \
+                                "https://api.github.com/repos/daws-84s/catalogue/dependabot/alerts?state=open&per_page=100"
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        def alerts = readJSON text: response
+
+                        def criticalOrHigh = alerts.findAll { alert ->
+                            def severity = alert?.security_advisory?.severity?.toLowerCase()
+                            return severity == "critical" || severity == "high"
+                        }
+
+                        if (criticalOrHigh.size() > 0) {
+                            error "❌ Found ${criticalOrHigh.size()} critical/high vulnerabilities. Fix and re-run."
+                        }
+
+                        echo "✅ No critical or high vulnerabilities found. Pipeline passed."
+                    }
+                }
+            }
+        }
         stage('Docker Build') {
             steps {
                 script {
