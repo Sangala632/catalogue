@@ -113,6 +113,41 @@ pipeline {
                 }
             }
         }
+        stage('ECR Image Scan') {
+            steps {
+                script {
+                    withAWS(credentials: 'aws-creds', region: "${REGION}") {
+                        // Wait for scan to complete
+                        sh "sleep 30"
+
+                        def scanResult = sh(
+                            returnStdout: true,
+                            script: """
+                                aws ecr describe-image-scan-findings \
+                                --repository-name ${PROJECT}/${COMPONENT} \
+                                --image-id imageTag=${appVersion} \
+                                --region ${REGION} \
+                                --query 'imageScanFindings.findingSeverityCounts' \
+                                --output json
+                            """
+                        ).trim()
+
+                        def findings = readJSON text: scanResult
+
+                        def critical = findings.CRITICAL ? findings.CRITICAL : 0
+                        def high = findings.HIGH ? findings.HIGH : 0
+
+                        echo "Critical: ${critical}, High: ${high}"
+
+                        if (critical > 0 || high > 0) {
+                            error "Build failed! Found ${critical} CRITICAL and ${high} HIGH vulnerabilities in ECR scan."
+                        } else {
+                            echo "ECR scan passed! No CRITICAL or HIGH vulnerabilities found."
+                        }
+                    }
+                }
+            }
+        }
 
         stage('Trigger Deploy') {
             when {
