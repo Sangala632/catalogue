@@ -1,11 +1,11 @@
 #multi stage builds 243mb
-FROM node:20-alpine3.23 AS builder 
+FROM node:20-alpine3.22 AS builder 
 WORKDIR /opt/server
 COPY package.json .
 COPY *.js .
 RUN npm install
 
-FROM node:20-alpine3.23
+FROM node:20-alpine3.22
 RUN addgroup -S roboshop-project && adduser -S roboshop -G roboshop-project
 RUN apk add --no-cache --upgrade musl openssl zlib busybox
 WORKDIR /opt/server
