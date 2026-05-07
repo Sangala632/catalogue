@@ -16,6 +16,7 @@ pipeline {
     parameters {
         booleanParam(name: 'deploy', defaultValue: false, description: 'Toggle this value')
     }
+    // Reading the application version from package.json
     stages {
         stage('Read package.json') {
             steps {
@@ -26,7 +27,7 @@ pipeline {
                 }
             }
         }
-
+        // Installing all required node modules and dependencies
         stage('Install Dependencies') {
             steps {
                 script {
@@ -36,7 +37,7 @@ pipeline {
                 }
             }
         }
-
+        // Running unit tests to validate the application code
         stage('Unit Testing') {
             steps {
                 script {
@@ -46,7 +47,7 @@ pipeline {
                 }
             }
         }
-
+        // Scanning source code using SonarQube to find bugs, code smells and security issues
        /*  stage('Sonar scan') {
             environment {
                 scannerHome = tool 'sonarqube-8.0'
@@ -59,6 +60,8 @@ pipeline {
                 }
             }
         }
+        // Waiting for SonarQube quality gate result and failing the pipeline if quality gate fails
+        // Note: enable webhook in SonarQube server to send results back to Jenkins
         // enable webhook in sonarqube server and wait for result
         stage("Quality Gate") {
             steps {
@@ -66,7 +69,7 @@ pipeline {
                 waitForQualityGate abortPipeline: true }
             }
         } */
-
+        // Checking Dependabot alerts to fail the pipeline if any HIGH and CRITICAL vulnerabilities are found
         stage('Check Dependabot Alerts') {
             steps {
                 withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
@@ -97,6 +100,7 @@ pipeline {
                 }
             }
         }
+        // Building Docker image and pushing it to AWS ECR
         stage('Docker Build') {
             steps {
                 script {
@@ -113,12 +117,13 @@ pipeline {
                 }
             }
         }
+        // Scanning Docker image in ECR to fail the pipeline if any HIGH and CRITICAL vulnerabilities are found
         stage('Check ECR Scan Results') {
             steps {
                 script {
                     withAWS(credentials: 'aws-creds', region: 'us-east-1') {
 
-                        sleep(time: 60, unit: 'SECONDS')
+                        sleep(time: 45, unit: 'SECONDS')
 
                         // Fetch scan findings
                         def findings = sh(
@@ -149,6 +154,7 @@ pipeline {
                 }
             }
         }
+        // Triggering the deployment pipeline to deploy the application to dev environment
         stage('Trigger Deploy') {
             when {
             expression { params.deploy }
