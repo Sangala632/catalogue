@@ -113,42 +113,40 @@ pipeline {
                 }
             }
         }
-        stage('ECR Image Scan') {
+        stage('Check Scan Results') {
             steps {
                 script {
-                    withAWS(credentials: 'aws-creds', region: "${REGION}") {
-                        // Wait for scan to complete
-                        sh "sleep 30"
-
-                        def scanResult = sh(
-                            returnStdout: true,
+                    withAWS(credentials: 'aws-creds', region: 'us-east-1') {
+                    // Fetch scan findings
+                        def findings = sh(
                             script: """
                                 aws ecr describe-image-scan-findings \
                                 --repository-name ${PROJECT}/${COMPONENT} \
                                 --image-id imageTag=${appVersion} \
                                 --region ${REGION} \
-                                --query 'imageScanFindings.findingSeverityCounts' \
                                 --output json
-                            """
+                            """,
+                            returnStdout: true
                         ).trim()
 
-                        def findings = readJSON text: scanResult
+                        // Parse JSON
+                        def json = readJSON text: findings
 
-                        def critical = findings.CRITICAL ? findings.CRITICAL : 0
-                        def high = findings.HIGH ? findings.HIGH : 0
+                        def highCritical = json.imageScanFindings.findings.findAll {
+                            it.severity == "HIGH" || it.severity == "CRITICAL"
+                        }
 
-                        echo "Critical: ${critical}, High: ${high}"
-
-                        if (critical > 0 || high > 0) {
-                            error "Build failed! Found ${critical} CRITICAL and ${high} HIGH vulnerabilities in ECR scan."
+                        if (highCritical.size() > 0) {
+                            echo "❌ Found ${highCritical.size()} HIGH/CRITICAL vulnerabilities!"
+                            currentBuild.result = 'FAILURE'
+                            error("Build failed due to vulnerabilities")
                         } else {
-                            echo "ECR scan passed! No CRITICAL or HIGH vulnerabilities found."
+                            echo "✅ No HIGH/CRITICAL vulnerabilities found."
                         }
                     }
                 }
             }
         }
-
         stage('Trigger Deploy') {
             when {
             expression { params.deploy }
