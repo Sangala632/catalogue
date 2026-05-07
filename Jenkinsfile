@@ -113,11 +113,14 @@ pipeline {
                 }
             }
         }
-        stage('Check Scan Results') {
+        stage('Check ECR Scan Results') {
             steps {
                 script {
                     withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                    // Fetch scan findings
+
+                        sleep(time: 60, unit: 'SECONDS')
+
+                        // Fetch scan findings
                         def findings = sh(
                             script: """
                                 aws ecr describe-image-scan-findings \
@@ -131,7 +134,6 @@ pipeline {
 
                         // Parse JSON
                         def json = readJSON text: findings
-
                         def highCritical = json.imageScanFindings.findings.findAll {
                             it.severity == "HIGH" || it.severity == "CRITICAL"
                         }
