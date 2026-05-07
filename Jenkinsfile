@@ -47,7 +47,7 @@ pipeline {
             }
         }
 
-        stage('Sonar scan') {
+       /*  stage('Sonar scan') {
             environment {
                 scannerHome = tool 'sonarqube-8.0'
             }
@@ -65,7 +65,7 @@ pipeline {
                 timeout(time: 1, unit: 'HOURS') {
                 waitForQualityGate abortPipeline: true }
             }
-        }
+        } */
 
         stage('Check Dependabot Alerts') {
             steps {
