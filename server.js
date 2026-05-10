@@ -55,7 +55,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 app.get('/health', (req, res) => {
-    var const = {
+    const stat = {
         app: 'OK',
         mongo: mongoConnected
     };
